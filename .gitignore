@@ -23,3 +23,7 @@ lab1_pd1/test_server/server_test
 .vscode/ipch/9a4412fdfa364de2/server1_4.ipch
 .vscode/ipch/fff5fab232d51db5/mmap_address.bin
 .vscode/ipch/fff5fab232d51db5/sockwrap.ipch
+.vscode/ipch/2dde2cc4fe4aecfc/client_test.ipch
+lab2_pd1/server_es2
+lab2_pd1/client_test
+.vscode/ipch/2dde2cc4fe4aecfc/mmap_address.bin
