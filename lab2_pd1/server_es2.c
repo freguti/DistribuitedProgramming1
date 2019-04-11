@@ -71,15 +71,15 @@ int main(int argc, char **argv)
                 return -1;
             }
         }
+        
         number = htonl(atoi(rcvbuffer)); //non ho capito la parte dell'intero netwotk, possibile htonl
-        //for(int j = 0;j<strlen(rcvbuffer);j++) if(rcvbuffer[j] == '\0') rcvbuffer[j] = ' ';
-        sprintf(rcvbuffer,"%d",number);
-        printf("numero convertito: %s\n",rcvbuffer);
+        //sprintf(rcvbuffer,"%d",number);
+        printf("numero convertito: %d\n",number);
         memcpy(sndbuffer,rcvbuffer,10*sizeof(char));
         time_t t;
         time(&t);
         printf("timestamp: %ld\n",t);
-        uint32_t timestamp = htonl(t); //forse è sminchiato da htonl
+        uint32_t timestamp = htonl(t); //non me lo prende unsigned
         sprintf(rcvbuffer,"%d",timestamp);
         
         strcat(sndbuffer,rcvbuffer);

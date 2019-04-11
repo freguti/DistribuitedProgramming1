@@ -46,8 +46,8 @@ int main(int argc, char* argv[])
 
   if(strlen(argv[3]) >= SEND_BUFF_SIZE)
     return -1;
-
-  strcpy(buffer,argv[3]);
+  
+  sprintf(buffer,"%d",htonl(atoi(argv[3])));
   printf("prova: %s\n",buffer);
   while(tentativi < 5)
   {
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
       tentativi ++;
     }
   }
-  if(tentativi == 10)
+  if(tentativi >= 10)
     printf("SUCCESSO AL %d TENTATIVO\n",tentativi-10+1);
   else
     printf("ERRORE DI INVIO; ECCEDUTI I 5 TENTATIVI\n");    
