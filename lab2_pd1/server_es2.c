@@ -75,12 +75,12 @@ int main(int argc, char **argv)
         number = htonl(atoi(rcvbuffer)); //non ho capito la parte dell'intero netwotk, possibile htonl
         //sprintf(rcvbuffer,"%d",number);
         printf("numero convertito: %d\n",number);
-        memcpy(sndbuffer,rcvbuffer,10*sizeof(char));
+        strcpy(sndbuffer,rcvbuffer);
         time_t t;
         time(&t);
-        printf("timestamp: %ld\n",t);
+        printf("t: %ld\n",t);
         uint32_t timestamp = htonl(t); //non me lo prende unsigned
-        sprintf(rcvbuffer,"%d",timestamp);
+        sprintf(rcvbuffer,"%u",timestamp);
         
         strcat(sndbuffer,rcvbuffer);
         //sndbuffer[21] = '\0'; //un numero su 32 bit è lungo max 10 caratteri
