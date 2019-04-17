@@ -21,6 +21,8 @@
 #include "./../errlib.h"
 #include "./../sockwrap.h"
 
+#define QUEUE_SIZE 15
+
 char* prog_name;
 
 int main(int argc, char **argv)
@@ -30,7 +32,6 @@ int main(int argc, char **argv)
 
     struct sockaddr_in server, client;
 
-    
     if(argc != 2)
     {
         printf("errore nei parametri\n");
@@ -49,7 +50,7 @@ int main(int argc, char **argv)
     
     while(1)
     {
-
+        Listen(sock, QUEUE_SIZE);
     }
     return 0;
 }
