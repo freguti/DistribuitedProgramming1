@@ -18,14 +18,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "./../../include/errlib.h"
-#include "./../../include/sockwrap.h"
-
-#ifdef TRACE
-#define trace(x) x
-#else
-#define trace(x)
-#endif
+#include "./../errlib.h"
+#include "./../sockwrap.h"
 
 char* prog_name;
 
@@ -36,6 +30,7 @@ int main(int argc, char **argv)
 
     struct sockaddr_in server, client;
 
+    
     if(argc != 2)
     {
         printf("errore nei parametri\n");
@@ -49,10 +44,12 @@ int main(int argc, char **argv)
     server.sin_family = AF_INET;
 	server.sin_port = htons(porta);
     server.sin_addr.s_addr = htonl(INADDR_ANY);
-
     Bind(sock,(const struct sockaddr*)&server,sizeof(server));
-    trace(err_msg("(%s) listening on %s:%u",prog_name,inet_ntoa(server.sin_addr),ntohs(server.sin_port)));
+    printf("(%s) listening on %s:%u\n",prog_name,inet_ntoa(server.sin_addr),ntohs(server.sin_port));
     
-    
+    while(1)
+    {
+
+    }
     return 0;
 }
