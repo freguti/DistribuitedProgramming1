@@ -19,16 +19,24 @@ char* prog_name;
 int main(int argc, char* argv[])
 {
 	int sock;
+	int i;
+
+	char send_buf[5];
+	strcpy(send_buf,"GET");
 
   	struct sockaddr_in saddr;
 
-  	if(argc < 3)
+  	if(argc < 4)
   	{
 		printf("non sono stati specificati abbastanza parametri\n");
 	  	return -1;
   	}
 	prog_name = argv[0];
-
+	for(i = 3;i<argc;i++)
+	{
+		strcat(send_buf," ");
+		strcat(send_buf,argv[i]);
+	}
 	sock = Socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
 	
 	saddr.sin_family = AF_INET;
@@ -37,4 +45,6 @@ int main(int argc, char* argv[])
     Connect(sock,(struct sockaddr*)&saddr, sizeof(saddr));
 
 	printf("(%s) connected with %s:%u\n",prog_name,inet_ntoa(saddr.sin_addr),ntohs(saddr.sin_port));
+	Send(sock,send_buf,strlen(send_buf)*sizeof(char),0);
+	//filename = strtok(recv_buffer," ");
 }
