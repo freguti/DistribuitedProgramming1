@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <stdio.h>
-
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -25,6 +25,7 @@
 #define RECVDIM 200 //per ora ricevo filename solo fino a 200 caratteri 
 #define DIM_ERR 6
 #define NAMEDIM 30 //per ora nomefile max 30
+#define SENDDIM 1500 //1500 byte dimensione tcp 
 
 char* prog_name;
 
@@ -33,16 +34,17 @@ int main(int argc, char **argv)
     int porta;
     int sock;
     int connection;
-    int offset = 3;
+    int offset = 0;
+    int file = 0;
+    FILE* f;
 
     char *recv_buffer = malloc(RECVDIM * sizeof(char));
+    char *send_buffer = malloc(SENDDIM * sizeof(char));
     char *filename;
     const char error[6] = {'-','E','R','R','\r','\n'};
     char *success;
 
     struct stat statfile;
-
-    FILE* f;
 
     struct sockaddr_in server, client;
     socklen_t clientaddr = sizeof(client);
@@ -67,38 +69,74 @@ int main(int argc, char **argv)
     {
         connection = accept(sock, (SA*) &client, &clientaddr);
         printf("(%s) - new connection from client %s:%u\n", prog_name, inet_ntoa(client.sin_addr),ntohs(client.sin_port));
-        int read = recv(connection,recv_buffer,(size_t)(RECVDIM*sizeof(char)),0);
+        int read_b = recv(connection,recv_buffer,(size_t)(RECVDIM*sizeof(char)),0);
         printf("stringa ricevuta: %s\n",recv_buffer);
-        if(read == -1)
+        if(read_b == -1)
         {
             printf("errore di ricezione!\n");
         }
         else
         {
-            if(!(recv_buffer[0] == 'G' && recv_buffer[1] == 'E' && recv_buffer[2] == 'T' && recv_buffer[3] == ' ' && recv_buffer[read-1] != '\r' && recv_buffer[read-2] != '\n'))
+            if(!(recv_buffer[0] == 'G' && recv_buffer[1] == 'E' && recv_buffer[2] == 'T' && recv_buffer[3] == ' ' && recv_buffer[read_b-1] != '\r' && recv_buffer[read_b-2] != '\n'))
             {
                 printf("error\n");
                 Send(connection,(void *)error,DIM_ERR*sizeof(char),0);
             }
             else
             {   
-                sscanf(recv_buffer,"GET %s\n\r",filename);
+                char msg[5];
+                sscanf(recv_buffer,"%s %s\n\r",msg, filename);
                 printf("filename : %s\n",filename);
                 //cercare file con nome filename
-                f = fopen(filename,"r");
-                if (f == NULL)
+                file = open(filename, O_RDONLY);
+                printf("%d", file);
+                if (file == -1)
                 {
                     printf("errore di apertura nel file!\n");
                 }
                 else
                 {
+                    fflush(stdout);
                     int res = stat(filename,&statfile);
                     if(res == 0)
                         printf("stat dimensione %lu  timestamp %lu\n",statfile.st_size,statfile.st_mtime);
                     else   
                         printf("error stat\n");
                     
-                    //invio stringa di conferma
+                    if(S_ISDIR(statfile.st_mode) == 0)
+                    {
+                        //invio file
+                        fflush(stdout);
+                        strcpy(send_buffer,"+OK\n\r");
+                        uint32_t dimension = htonl(statfile.st_size);
+                        sprintf(&send_buffer[5],"%u",dimension);
+                        Send(connection,send_buffer,9*sizeof(char),0);
+                        int ciccio = 0;
+                        memset(send_buffer,0,SENDDIM);
+                        while((statfile.st_size - offset) > SENDDIM ) // ho più di RECVDIM byte da inviare
+                        {
+
+                            ciccio = read(file,send_buffer,SENDDIM); // potrei fare un controllo sul n di byte letti 
+                            
+                            offset += ciccio; //incremento l'offset
+                            printf("%ld\n",statfile.st_size - offset);
+                            Send(connection,send_buffer,SENDDIM*sizeof(char),0);
+                            memset(send_buffer,0,SENDDIM);
+                        }
+                        //fine, invio i rimanenti byte
+                        ciccio = read(file,send_buffer,(statfile.st_size - offset) );
+                        printf("%d\n",offset + ciccio);
+                        Send(connection,send_buffer,(statfile.st_size - offset)*sizeof(char) ,0);
+                        uint32_t timestamp = htonl(statfile.st_mtime);
+                        sprintf(send_buffer,"%u",timestamp);
+                        Send(connection,send_buffer,4*sizeof(char),0);
+                        printf("byte inviati: %d\n",offset);
+                    }
+                    else
+                    {
+                        printf("bisogna scegliere un file\n");
+                    }
+                    
                 }
             }
         }
