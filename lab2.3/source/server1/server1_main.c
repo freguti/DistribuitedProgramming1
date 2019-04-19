@@ -108,7 +108,8 @@ int main(int argc, char **argv)
                         //invio file
                         fflush(stdout);
                         strcpy(send_buffer,"+OK\n\r");
-                        uint32_t dimension = htonl(statfile.st_size);
+                        int dimension = htonl(statfile.st_size);
+                        printf("dimensione convertita %u\n",dimension);
                         sprintf(&send_buffer[5],"%u",dimension);
                         Send(connection,send_buffer,9*sizeof(char),0);
                         int ciccio = 0;
@@ -119,17 +120,24 @@ int main(int argc, char **argv)
                             ciccio = read(file,send_buffer,SENDDIM); // potrei fare un controllo sul n di byte letti 
                             
                             offset += ciccio; //incremento l'offset
-                            printf("%ld\n",statfile.st_size - offset);
-                            Send(connection,send_buffer,SENDDIM*sizeof(char),0);
+                            
+                            
+                            
+                            for(int i = 0;i< 1500;i++)
+                            {
+                                int w = write(connection,(void *)&send_buffer[i],1);
+                                if(w == -1) printf("ERRORE\n");}
+                            printf("ciaociao %ld\n",statfile.st_size - offset);
+                            //Send(connection,send_buffer,SENDDIM,0);
                             memset(send_buffer,0,SENDDIM);
                         }
                         //fine, invio i rimanenti byte
                         ciccio = read(file,send_buffer,(statfile.st_size - offset) );
                         printf("%d\n",offset + ciccio);
-                        Send(connection,send_buffer,(statfile.st_size - offset)*sizeof(char) ,0);
+                        Send(connection,send_buffer,(statfile.st_size - offset) ,0);
                         uint32_t timestamp = htonl(statfile.st_mtime);
                         sprintf(send_buffer,"%u",timestamp);
-                        Send(connection,send_buffer,4*sizeof(char),0);
+                        Send(connection,send_buffer,4,0);
                         printf("byte inviati: %d\n",offset);
                     }
                     else
