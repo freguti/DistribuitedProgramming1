@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 	
 	fd_set cset;
 
-	char *res = malloc(1500*sizeof(char));
+	char *res = malloc(1500);
 	struct timeval tval; //gestione del tempo
 	int t = 15; //numero di secondi di attesa7
 
@@ -62,21 +62,23 @@ int main(int argc, char* argv[])
 	FD_SET(sock,&cset);
 	tval.tv_sec = t; //assegno i secondi
 	tval.tv_usec = 0; //microsecondi
+	int somma = 0;
+	int f1;
+	f1 = open("RICEZIONE.txt",O_WRONLY);
+	while(somma < 104857600)
+	{
+		//if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
+		//{
+			memset(res,0,1500);
+			somma = recv(sock,res,1500,0);
+			
+			write(f1,res,1500);
+		//}
+		//else
+		//{
 
-	//if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
-	//{
-
-		int ricevuti=0,somma = 0;
-		while((ricevuti = recv(sock,res,1,0)) != -1)
-		{
-			somma ++;
-			if((somma = somma % 1500) == 0)
-				printf("yep\n");
-		}
-	//}
-	//else
-	//{
-	//	printf("TIMEOUT!\n");
-	//}
-	
+		//	printf("TIMEOUT!\n");
+		//	return -1;
+		//}/
+	}
 }

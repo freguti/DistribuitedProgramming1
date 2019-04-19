@@ -38,8 +38,8 @@ int main(int argc, char **argv)
     int file = 0;
     FILE* f;
 
-    char *recv_buffer = malloc(RECVDIM * sizeof(char));
-    char *send_buffer = malloc(SENDDIM * sizeof(char));
+    char *recv_buffer = malloc(RECVDIM);
+    char *send_buffer = malloc(1500);
     char *filename;
     const char error[6] = {'-','E','R','R','\r','\n'};
     char *success;
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     {
         connection = accept(sock, (SA*) &client, &clientaddr);
         printf("(%s) - new connection from client %s:%u\n", prog_name, inet_ntoa(client.sin_addr),ntohs(client.sin_port));
-        int read_b = recv(connection,recv_buffer,(size_t)(RECVDIM*sizeof(char)),0);
+        int read_b = recv(connection,recv_buffer,(size_t)RECVDIM,0);
         printf("stringa ricevuta: %s\n",recv_buffer);
         if(read_b == -1)
         {
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
             if(!(recv_buffer[0] == 'G' && recv_buffer[1] == 'E' && recv_buffer[2] == 'T' && recv_buffer[3] == ' ' && recv_buffer[read_b-1] != '\r' && recv_buffer[read_b-2] != '\n'))
             {
                 printf("error\n");
-                Send(connection,(void *)error,DIM_ERR*sizeof(char),0);
+                Send(connection,(void *)error,DIM_ERR,0);
             }
             else
             {   
@@ -89,7 +89,6 @@ int main(int argc, char **argv)
                 printf("filename : %s\n",filename);
                 //cercare file con nome filename
                 file = open(filename, O_RDONLY);
-                printf("%d", file);
                 if (file == -1)
                 {
                     printf("errore di apertura nel file!\n");
@@ -107,33 +106,24 @@ int main(int argc, char **argv)
                     {
                         //invio file
                         fflush(stdout);
-                        strcpy(send_buffer,"+OK\n\r");
+                        strcpy(send_buffer,"+OK\r\n");
                         int dimension = htonl(statfile.st_size);
                         printf("dimensione convertita %u\n",dimension);
+                        fflush(stdout);
                         sprintf(&send_buffer[5],"%u",dimension);
-                        Send(connection,send_buffer,9*sizeof(char),0);
-                        int ciccio = 0;
+                        offset += read(file,&send_buffer[9],1500-9);
+                        Send(connection,send_buffer,1500,0);
                         memset(send_buffer,0,SENDDIM);
-                        while((statfile.st_size - offset) > SENDDIM ) // ho più di RECVDIM byte da inviare
+                        while((statfile.st_size - offset) > (SENDDIM-4) ) // ho più di RECVDIM byte da inviare
                         {
-
-                            ciccio = read(file,send_buffer,SENDDIM); // potrei fare un controllo sul n di byte letti 
-                            
-                            offset += ciccio; //incremento l'offset
-                            
-                            
-                            
-                            for(int i = 0;i< 1500;i++)
-                            {
-                                int w = write(connection,(void *)&send_buffer[i],1);
-                                if(w == -1) printf("ERRORE\n");}
-                            printf("ciaociao %ld\n",statfile.st_size - offset);
-                            //Send(connection,send_buffer,SENDDIM,0);
+                            offset += read(file,send_buffer,1500); // potrei fare un controllo sul n di byte letti 
+                            write(connection,(void *)send_buffer,1500);
+                            //printf("%d\n",offset);
                             memset(send_buffer,0,SENDDIM);
                         }
                         //fine, invio i rimanenti byte
-                        ciccio = read(file,send_buffer,(statfile.st_size - offset) );
-                        printf("%d\n",offset + ciccio);
+                        offset += read(file,send_buffer,(statfile.st_size - offset) );
+                        printf("%d\n",offset);
                         Send(connection,send_buffer,(statfile.st_size - offset) ,0);
                         uint32_t timestamp = htonl(statfile.st_mtime);
                         sprintf(send_buffer,"%u",timestamp);
