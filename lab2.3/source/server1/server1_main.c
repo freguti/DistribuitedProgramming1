@@ -21,7 +21,8 @@
 #include "./../errlib.h"
 #include "./../sockwrap.h"
 
-#define QUEUE_SIZE 15
+#define MSG_OK "+OK\n\r"
+#define QUEUE_SIZE 2
 #define RECVDIM 200 //per ora ricevo filename solo fino a 200 caratteri 
 #define DIM_ERR 6
 #define NAMEDIM 30 //per ora nomefile max 30
@@ -39,15 +40,15 @@ int main(int argc, char **argv)
     FILE* f;
 
     char *recv_buffer = malloc(RECVDIM);
-    char *send_buffer = malloc(1500);
+    char *send_buffer = malloc(SENDDIM);
     char *filename;
-    const char error[6] = {'-','E','R','R','\r','\n'};
+    const char error[7] = {'-','E','R','R','\r','\n'};
     char *success;
 
     struct stat statfile;
 
     struct sockaddr_in server, client;
-    socklen_t clientaddr = sizeof(client);
+    socklen_t clientaddr = sizeof(struct sockaddr_in);
 
     if(argc != 2)
     {
@@ -67,25 +68,50 @@ int main(int argc, char **argv)
     Listen(sock, QUEUE_SIZE);
     while(1)
     {
-        connection = accept(sock, (SA*) &client, &clientaddr);
-        printf("(%s) - new connection from client %s:%u\n", prog_name, inet_ntoa(client.sin_addr),ntohs(client.sin_port));
-        int read_b = recv(connection,recv_buffer,(size_t)RECVDIM,0);
-        printf("stringa ricevuta: %s\n",recv_buffer);
-        if(read_b == -1)
-        {
-            printf("errore di ricezione!\n");
-        }
-        else
-        {
-            if(!(recv_buffer[0] == 'G' && recv_buffer[1] == 'E' && recv_buffer[2] == 'T' && recv_buffer[3] == ' ' && recv_buffer[read_b-1] != '\r' && recv_buffer[read_b-2] != '\n'))
+        connection = accept(sock, (struct sockaddr*) &client, &clientaddr);
+        printf("%d \n(%s) - new connection from client %s:%u\n", connection,prog_name, inet_ntoa(client.sin_addr),ntohs(client.sin_port));
+        //int read_b = recv(connection,recv_buffer,(size_t)RECVDIM,0);
+        //printf("stringa ricevuta: %s\n",recv_buffer);
+        char msg[5];
+        //sscanf(recv_buffer,"%s %s\r\n",msg, filename);
+        //if(read_b == -1)
+        //{
+        //    printf("errore di ricezione!\n");
+        //}
+        //else
+        //{
+        //    if(strcmp(msg,"GET") != 0)
+        //    {
+        //        printf("error\n");
+        //        Send(connection,(void *)error,DIM_ERR,0);
+        //    }
+            char tmp = ' ';
+            int i = 0;
+            while(tmp != '\n')
+            {
+                if(read(connection,&tmp,1)!= 1) 
+                    return -1;
+                recv_buffer[i++] = tmp;
+            }
+            sscanf(recv_buffer, "%s %s\r\n",msg,filename);
+            printf("%s\n",recv_buffer);
+            if(strcmp(msg,"GET") != 0)
             {
                 printf("error\n");
-                Send(connection,(void *)error,DIM_ERR,0);
+                Send(connection,(void *)error,DIM_ERR,0);  
             }
             else
             {   
-                char msg[5];
-                sscanf(recv_buffer,"%s %s\n\r",msg, filename);
+                if(filename[0]== ' ')
+                    memmove(filename,filename+1,strlen(filename));
+                for(int j = 0;j<strlen(filename);j++)
+                {
+                    if(filename[j] == ' ' || filename[j] == '\r' || filename[j] == '\n')
+                    {
+                        filename[j] = '\0';
+                        break;
+                    }
+                }
                 printf("filename : %s\n",filename);
                 //cercare file con nome filename
                 file = open(filename, O_RDONLY);
@@ -95,40 +121,67 @@ int main(int argc, char **argv)
                 }
                 else
                 {
-                    fflush(stdout);
                     int res = stat(filename,&statfile);
+                    fflush(stdout);
                     if(res == 0)
                         printf("stat dimensione %lu  timestamp %lu\n",statfile.st_size,statfile.st_mtime);
+                        
                     else   
                         printf("error stat\n");
-                    
+                    fflush(stdout);
                     if(S_ISDIR(statfile.st_mode) == 0)
                     {
+                        int c = 0;
+                        u_int32_t dimension = htonl(statfile.st_size);
+                        int usable_dim = statfile.st_size;
+                        
                         //invio file
-                        fflush(stdout);
-                        strcpy(send_buffer,"+OK\r\n");
-                        int dimension = htonl(statfile.st_size);
+                        /*strcpy(send_buffer,MSG_OK); //POSSO FARE 2 SEND DIVERSE PER +OK E LA DIMENSIONE
                         printf("dimensione convertita %u\n",dimension);
                         fflush(stdout);
-                        sprintf(&send_buffer[5],"%u",dimension);
-                        offset += read(file,&send_buffer[9],1500-9);
-                        Send(connection,send_buffer,1500,0);
-                        memset(send_buffer,0,SENDDIM);
-                        while((statfile.st_size - offset) > (SENDDIM-4) ) // ho più di RECVDIM byte da inviare
+                        sprintf(send_buffer + strlen(send_buffer),"%u",dimension); //è rotto
+                        printf("buffer invio:%s dimensione:%ld\n",send_buffer,strlen(send_buffer));
+                        
+                        int i = 0;
+                        
+                        while(i< strlen(send_buffer))
                         {
-                            offset += read(file,send_buffer,1500); // potrei fare un controllo sul n di byte letti 
-                            write(connection,(void *)send_buffer,1500);
-                            //printf("%d\n",offset);
+                            write(connection,(void *)&send_buffer[i],1);
+                            i++;
+                        }
+                        //write(connection,(void *)&"\0",1);*/
+                        write(connection,MSG_OK,strlen(MSG_OK));
+                        write(connection,&dimension,4);
+                        printf("dimensione inviata: %u\n",dimension);
+
+                        memset(send_buffer,0,SENDDIM);
+                        int ret_val = 0;
+                        int sent_char=0;
+                        while(sent_char < usable_dim ) // ho più di RECVDIM byte da inviare
+                        {
                             memset(send_buffer,0,SENDDIM);
+                            if(SENDDIM > (usable_dim - sent_char))
+                                ret_val = read(file,send_buffer,usable_dim - sent_char); // potrei fare un controllo sul n di byte letti 
+                            else
+                                ret_val = read(file,send_buffer,SENDDIM);
+                            offset = write(connection,send_buffer,ret_val);
+                            if(offset != ret_val)
+                                return -1;
+                            sent_char += offset;
+
                         }
                         //fine, invio i rimanenti byte
-                        offset += read(file,send_buffer,(statfile.st_size - offset) );
-                        printf("%d\n",offset);
-                        Send(connection,send_buffer,(statfile.st_size - offset) ,0);
+                        //read(file,send_buffer,statfile.st_size - offset);//(statfile.st_size - offset) );
+                        //printf("%d\n",offset);
+                        //offset += write(connection,send_buffer,statfile.st_size - offset);//(statfile.st_size - offset));
+                        //printf("%ld\n",statfile.st_size - offset);
+                        printf("byte inviati: %d\n",sent_char);
+                        printf("timestamp %lu\n",statfile.st_mtime);
                         uint32_t timestamp = htonl(statfile.st_mtime);
-                        sprintf(send_buffer,"%u",timestamp);
-                        Send(connection,send_buffer,4,0);
-                        printf("byte inviati: %d\n",offset);
+                        
+                        offset = write(connection,&timestamp,4);
+                        close(connection);
+                        
                     }
                     else
                     {
@@ -137,7 +190,6 @@ int main(int argc, char **argv)
                     
                 }
             }
-        }
     }
-    return 0;
+    return 0; //28/04/2019
 }

@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
 	int sock;
     int i;
 
-    char send_buf[5];
+    char send_buf[50];
     strcpy(send_buf,"GET");
 
 	struct sockaddr_in saddr;
@@ -37,11 +37,9 @@ int main(int argc, char* argv[])
        	return -1;
   	}
     prog_name = argv[0];
-    for(i = 3;i<argc;i++)
-    {
-        strcat(send_buf," ");
-        strcat(send_buf,argv[i]);
-    }
+	strcat(send_buf," ");
+	strcat(send_buf,argv[3]);
+	strcat(send_buf,"\r\n");
 	sock = Socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
 	
 	saddr.sin_family = AF_INET;
@@ -50,11 +48,11 @@ int main(int argc, char* argv[])
 	Connect(sock,(struct sockaddr*)&saddr, sizeof(saddr));
 
 	printf("(%s) connected with %s:%u\n",prog_name,inet_ntoa(saddr.sin_addr),ntohs(saddr.sin_port));
-	Send(sock,send_buf,strlen(send_buf)*sizeof(char),0);
-	
+	int s = send(sock,send_buf,strlen(send_buf),0);
+	printf("caratteri inviati:%s\n",send_buf);
 	fd_set cset;
 
-	char *res = malloc(1500);
+	char *res = malloc(BUFF_LENGTH);
 	struct timeval tval; //gestione del tempo
 	int t = 15; //numero di secondi di attesa7
 
@@ -64,21 +62,61 @@ int main(int argc, char* argv[])
 	tval.tv_usec = 0; //microsecondi
 	int somma = 0;
 	int f1;
-	f1 = open("RICEZIONE.txt",O_WRONLY);
-	while(somma < 104857600)
+	char *namefile = malloc(100);
+	sprintf(namefile,"./client1/%s",argv[3]);
+	f1 = open(namefile,O_CREAT|O_TRUNC|O_WRONLY,S_IRUSR|S_IWUSR);
+	printf("aperto file\n");
+	fflush(stdout);
+	//recv(sock,res,100,0); //non penso sia più di 100
+	//u_int32_t a = ntohl((*(u_int32_t*) &res[5]));
+	//printf("dimensione %u\n",a);
+	char tmp = ' ';
+	i = 0;
+	int len = 0;
+	while(tmp != '\r')
+	{
+		fflush(stdout);
+		i = read(sock,(void *)&tmp,1);
+		if(i != -1)
+			res[len++] = tmp;		
+	}
+	res[len++] = '\0';
+	//CONTROLLO SU +OK\r\n
+	printf("stringa iniziale %s\n",res);
+	memset(res,0,BUFF_LENGTH);
+	tmp = ' ';
+	i = 0;
+	len = 0;
+	uint32_t dimensione;
+	recv(sock,&dimensione,4,0);
+	printf("dim %u\n",dimensione);
+	
+	dimensione = ntohl(dimensione);
+	printf("dimensione conv. %u\n",dimensione);
+	len = 0;
+	while(somma < dimensione)
 	{
 		//if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
 		//{
-			memset(res,0,1500);
-			somma = recv(sock,res,1500,0);
-			
-			write(f1,res,1500);
-		//}
-		//else
-		//{
-
-		//	printf("TIMEOUT!\n");
-		//	return -1;
-		//}/
+			memset(res,0,BUFF_LENGTH);
+			if((dimensione - somma) >= BUFF_LENGTH )
+			{
+				len = recv(sock,res,BUFF_LENGTH,0);
+				
+			}
+			else
+			{
+				len = recv(sock,res,dimensione - somma,0);
+			}
+			write(f1,res,len);
+			somma += len;
 	}
+	printf("%d\n",somma);
+	uint32_t timestamp;
+	recv(sock,&timestamp,4,0);
+	timestamp = ntohl(timestamp);
+	printf("timestamp %u\n",timestamp);
+	close(f1);
+	close(sock);
+	return 0; //28/04/2019
 }
