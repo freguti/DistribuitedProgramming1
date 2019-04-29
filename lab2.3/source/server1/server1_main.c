@@ -21,7 +21,7 @@
 #include "./../errlib.h"
 #include "./../sockwrap.h"
 
-#define MSG_OK "+OK\n\r"
+#define MSG_OK "+OK\r\n"
 #define QUEUE_SIZE 2
 #define RECVDIM 200 //per ora ricevo filename solo fino a 200 caratteri 
 #define DIM_ERR 6
@@ -70,21 +70,9 @@ int main(int argc, char **argv)
     {
         connection = accept(sock, (struct sockaddr*) &client, &clientaddr);
         printf("%d \n(%s) - new connection from client %s:%u\n", connection,prog_name, inet_ntoa(client.sin_addr),ntohs(client.sin_port));
-        //int read_b = recv(connection,recv_buffer,(size_t)RECVDIM,0);
-        //printf("stringa ricevuta: %s\n",recv_buffer);
+
         char msg[5];
-        //sscanf(recv_buffer,"%s %s\r\n",msg, filename);
-        //if(read_b == -1)
-        //{
-        //    printf("errore di ricezione!\n");
-        //}
-        //else
-        //{
-        //    if(strcmp(msg,"GET") != 0)
-        //    {
-        //        printf("error\n");
-        //        Send(connection,(void *)error,DIM_ERR,0);
-        //    }
+
             char tmp = ' ';
             int i = 0;
             while(tmp != '\n')
@@ -134,22 +122,7 @@ int main(int argc, char **argv)
                         int c = 0;
                         u_int32_t dimension = htonl(statfile.st_size);
                         int usable_dim = statfile.st_size;
-                        
-                        //invio file
-                        /*strcpy(send_buffer,MSG_OK); //POSSO FARE 2 SEND DIVERSE PER +OK E LA DIMENSIONE
-                        printf("dimensione convertita %u\n",dimension);
-                        fflush(stdout);
-                        sprintf(send_buffer + strlen(send_buffer),"%u",dimension); //è rotto
-                        printf("buffer invio:%s dimensione:%ld\n",send_buffer,strlen(send_buffer));
-                        
-                        int i = 0;
-                        
-                        while(i< strlen(send_buffer))
-                        {
-                            write(connection,(void *)&send_buffer[i],1);
-                            i++;
-                        }
-                        //write(connection,(void *)&"\0",1);*/
+
                         write(connection,MSG_OK,strlen(MSG_OK));
                         write(connection,&dimension,4);
                         printf("dimensione inviata: %u\n",dimension);
@@ -170,11 +143,6 @@ int main(int argc, char **argv)
                             sent_char += offset;
 
                         }
-                        //fine, invio i rimanenti byte
-                        //read(file,send_buffer,statfile.st_size - offset);//(statfile.st_size - offset) );
-                        //printf("%d\n",offset);
-                        //offset += write(connection,send_buffer,statfile.st_size - offset);//(statfile.st_size - offset));
-                        //printf("%ld\n",statfile.st_size - offset);
                         printf("byte inviati: %d\n",sent_char);
                         printf("timestamp %lu\n",statfile.st_mtime);
                         uint32_t timestamp = htonl(statfile.st_mtime);

@@ -63,17 +63,14 @@ int main(int argc, char* argv[])
 	int somma = 0;
 	int f1;
 	char *namefile = malloc(100);
-	sprintf(namefile,"./client1/%s",argv[3]);
+	sprintf(namefile,"%s",argv[3]);
 	f1 = open(namefile,O_CREAT|O_TRUNC|O_WRONLY,S_IRUSR|S_IWUSR);
 	printf("aperto file\n");
 	fflush(stdout);
-	//recv(sock,res,100,0); //non penso sia più di 100
-	//u_int32_t a = ntohl((*(u_int32_t*) &res[5]));
-	//printf("dimensione %u\n",a);
 	char tmp = ' ';
 	i = 0;
 	int len = 0;
-	while(tmp != '\r')
+	while(tmp != '\n')
 	{
 		fflush(stdout);
 		i = read(sock,(void *)&tmp,1);
@@ -96,8 +93,8 @@ int main(int argc, char* argv[])
 	len = 0;
 	while(somma < dimensione)
 	{
-		//if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
-		//{
+		if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
+		{
 			memset(res,0,BUFF_LENGTH);
 			if((dimensione - somma) >= BUFF_LENGTH )
 			{
@@ -110,6 +107,12 @@ int main(int argc, char* argv[])
 			}
 			write(f1,res,len);
 			somma += len;
+		}
+		else
+		{
+			printf("TIMEOUT!\n");
+			return -1;
+		}
 	}
 	printf("%d\n",somma);
 	uint32_t timestamp;
