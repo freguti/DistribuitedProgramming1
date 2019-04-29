@@ -22,9 +22,9 @@
 #include "./../sockwrap.h"
 
 #define MSG_OK "+OK\r\n"
-#define QUEUE_SIZE 2
+#define MSG_ERROR "-ERR\r\n"
+#define QUEUE_SIZE 5
 #define RECVDIM 200 //per ora ricevo filename solo fino a 200 caratteri 
-#define DIM_ERR 6
 #define NAMEDIM 30 //per ora nomefile max 30
 #define SENDDIM 1500 //1500 byte dimensione tcp 
 
@@ -37,13 +37,11 @@ int main(int argc, char **argv)
     int connection;
     int offset = 0;
     int file = 0;
-    FILE* f;
 
     char *recv_buffer = malloc(RECVDIM);
     char *send_buffer = malloc(SENDDIM);
-    char *filename;
-    const char error[7] = {'-','E','R','R','\r','\n'};
-    char *success;
+    char *filename = malloc(255);
+    //const char error[7] = {'-','E','R','R','\r','\n'};
 
     struct stat statfile;
 
@@ -86,20 +84,11 @@ int main(int argc, char **argv)
             if(strcmp(msg,"GET") != 0)
             {
                 printf("error\n");
-                Send(connection,(void *)error,DIM_ERR,0);  
+                Send(connection,MSG_ERROR,strlen(MSG_ERROR),0);  
             }
             else
             {   
-                if(filename[0]== ' ')
-                    memmove(filename,filename+1,strlen(filename));
-                for(int j = 0;j<strlen(filename);j++)
-                {
-                    if(filename[j] == ' ' || filename[j] == '\r' || filename[j] == '\n')
-                    {
-                        filename[j] = '\0';
-                        break;
-                    }
-                }
+                //sleep(5);
                 printf("filename : %s\n",filename);
                 //cercare file con nome filename
                 file = open(filename, O_RDONLY);
@@ -110,13 +99,11 @@ int main(int argc, char **argv)
                 else
                 {
                     int res = stat(filename,&statfile);
-                    fflush(stdout);
                     if(res == 0)
                         printf("stat dimensione %lu  timestamp %lu\n",statfile.st_size,statfile.st_mtime);
                         
                     else   
                         printf("error stat\n");
-                    fflush(stdout);
                     if(S_ISDIR(statfile.st_mode) == 0)
                     {
                         int c = 0;

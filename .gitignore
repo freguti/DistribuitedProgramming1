@@ -23,3 +23,10 @@ lab1_pd1/test_server/server_test
 .vscode/ipch/fff5fab232d51db5/sockwrap.ipch
 lab2.3/source/100MB.txt
 lab2.3/tools/ciao.txt
+lab2.3/source/client1/100MB.txt
+lab2.3/source/client1/ciao.txt
+lab2.3/source/ciao.txt
+lab2.3/source/ciao.txt
+lab2.3/source/server
+lab2.3/source/client
+.vscode/ipch/b84ee2c07c9a211c/server1_main.ipch

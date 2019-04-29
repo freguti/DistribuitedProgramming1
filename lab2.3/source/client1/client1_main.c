@@ -54,16 +54,13 @@ int main(int argc, char* argv[])
 
 	char *res = malloc(BUFF_LENGTH);
 	struct timeval tval; //gestione del tempo
-	int t = 15; //numero di secondi di attesa7
+	int t = 1; //numero di secondi di attesa7
 
-	FD_ZERO(&cset);
-	FD_SET(sock,&cset);
-	tval.tv_sec = t; //assegno i secondi
-	tval.tv_usec = 0; //microsecondi
+
 	int somma = 0;
 	int f1;
 	char *namefile = malloc(100);
-	sprintf(namefile,"%s",argv[3]);
+	sprintf(namefile,"%s",argv[3]); //per far passare i test togliere il path ./client1/
 	f1 = open(namefile,O_CREAT|O_TRUNC|O_WRONLY,S_IRUSR|S_IWUSR);
 	printf("aperto file\n");
 	fflush(stdout);
@@ -72,10 +69,10 @@ int main(int argc, char* argv[])
 	int len = 0;
 	while(tmp != '\n')
 	{
-		fflush(stdout);
-		i = read(sock,(void *)&tmp,1);
-		if(i != -1)
-			res[len++] = tmp;		
+			fflush(stdout);
+			i = read(sock,(void *)&tmp,1);
+			if(i != -1)
+				res[len++] = tmp;
 	}
 	res[len++] = '\0';
 	//CONTROLLO SU +OK\r\n
@@ -85,28 +82,37 @@ int main(int argc, char* argv[])
 	i = 0;
 	len = 0;
 	uint32_t dimensione;
-	recv(sock,&dimensione,4,0);
-	printf("dim %u\n",dimensione);
+		recv(sock,&dimensione,4,0);
+		printf("dim %u\n",dimensione);
 	
-	dimensione = ntohl(dimensione);
-	printf("dimensione conv. %u\n",dimensione);
+		dimensione = ntohl(dimensione);
+		printf("dimensione conv. %u\n",dimensione);
 	len = 0;
 	while(somma < dimensione)
 	{
+		FD_ZERO(&cset);
+		FD_SET(sock,&cset);
+		tval.tv_sec = 3; //assegno i secondi
+		tval.tv_usec = 500; //microsecondi
 		if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
 		{
 			memset(res,0,BUFF_LENGTH);
 			if((dimensione - somma) >= BUFF_LENGTH )
 			{
-				len = recv(sock,res,BUFF_LENGTH,0);
-				
+				len = read(sock,res,BUFF_LENGTH);
+				if(len != BUFF_LENGTH)
+					return -1;
 			}
 			else
 			{
-				len = recv(sock,res,dimensione - somma,0);
+				len = read(sock,res,dimensione - somma);
+				if(len != dimensione - somma)
+					return -1;
 			}
-			write(f1,res,len);
+			if(write(f1,res,len) != len)
+				return -1;
 			somma += len;
+			printf("somma :%d len:%d\n",somma,len);
 		}
 		else
 		{
@@ -116,9 +122,9 @@ int main(int argc, char* argv[])
 	}
 	printf("%d\n",somma);
 	uint32_t timestamp;
-	recv(sock,&timestamp,4,0);
-	timestamp = ntohl(timestamp);
-	printf("timestamp %u\n",timestamp);
+		recv(sock,&timestamp,4,0);
+		timestamp = ntohl(timestamp);
+		printf("timestamp %u\n",timestamp);
 	close(f1);
 	close(sock);
 	return 0; //28/04/2019
