@@ -37,6 +37,7 @@ int main(int argc, char **argv)
     int connection;
     int offset = 0;
     int file = 0;
+    int uscita;
 
     char *recv_buffer = malloc(RECVDIM);
     char *send_buffer = malloc(SENDDIM);
@@ -66,6 +67,7 @@ int main(int argc, char **argv)
     Listen(sock, QUEUE_SIZE);
     while(1)
     {
+        uscita = 0;
         connection = accept(sock, (struct sockaddr*) &client, &clientaddr);
         printf("%d \n(%s) - new connection from client %s:%u\n", connection,prog_name, inet_ntoa(client.sin_addr),ntohs(client.sin_port));
 
@@ -76,9 +78,14 @@ int main(int argc, char **argv)
             while(tmp != '\n')
             {
                 if(read(connection,&tmp,1)!= 1) 
-                    return -1;
+                    {
+                        uscita = 1;   
+                        break;
+                    }
                 recv_buffer[i++] = tmp;
             }
+            if(uscita == 1)
+                continue;
             sscanf(recv_buffer, "%s %s\r\n",msg,filename);
             printf("%s\n",recv_buffer);
             if(strcmp(msg,"GET") != 0)
@@ -126,10 +133,16 @@ int main(int argc, char **argv)
                                 ret_val = read(file,send_buffer,SENDDIM);
                             offset = write(connection,send_buffer,ret_val);
                             if(offset != ret_val)
-                                return -1;
+                            {
+                                uscita = 1;   
+                                break;
+                            }
                             sent_char += offset;
 
                         }
+
+                        if(uscita == 1)
+                            continue;
                         printf("byte inviati: %d\n",sent_char);
                         printf("timestamp %lu\n",statfile.st_mtime);
                         uint32_t timestamp = htonl(statfile.st_mtime);

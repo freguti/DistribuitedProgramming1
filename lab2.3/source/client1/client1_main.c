@@ -26,8 +26,7 @@ int main(int argc, char* argv[])
 	int sock;
     int i;
 
-    char send_buf[50];
-    strcpy(send_buf,"GET");
+    char send_buf[BUFF_LENGTH];
 
 	struct sockaddr_in saddr;
 
@@ -37,20 +36,27 @@ int main(int argc, char* argv[])
        	return -1;
   	}
     prog_name = argv[0];
-	strcat(send_buf," ");
-	strcat(send_buf,argv[3]);
-	strcat(send_buf,"\r\n");
-	sock = Socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
 	
-	saddr.sin_family = AF_INET;
-	saddr.sin_port = htons(atoi(argv[2])); //porta
-	saddr.sin_addr.s_addr = inet_addr(argv[1]); //indirizzo
-	Connect(sock,(struct sockaddr*)&saddr, sizeof(saddr));
+	int n_file = 3;
+	while(n_file < argc)
+	{
+		sock = Socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
+		saddr.sin_family = AF_INET;
+		saddr.sin_port = htons(atoi(argv[2])); //porta
+		saddr.sin_addr.s_addr = inet_addr(argv[1]); //indirizzo
+		Connect(sock,(struct sockaddr*)&saddr, sizeof(saddr));
 
 	printf("(%s) connected with %s:%u\n",prog_name,inet_ntoa(saddr.sin_addr),ntohs(saddr.sin_port));
+	memset(send_buf,0,BUFF_LENGTH);
+	strcpy(send_buf,"GET");
+	strcat(send_buf," ");
+	strcat(send_buf,argv[n_file]);
+	strcat(send_buf,"\r\n");
+	printf("%s %ld\n",send_buf,strlen(send_buf));
 	int s = send(sock,send_buf,strlen(send_buf),0);
 	printf("caratteri inviati:%s\n",send_buf);
 	fd_set cset;
+	
 
 	char *res = malloc(BUFF_LENGTH);
 	struct timeval tval; //gestione del tempo
@@ -60,8 +66,9 @@ int main(int argc, char* argv[])
 	int somma = 0;
 	int f1;
 	char *namefile = malloc(100);
-	sprintf(namefile,"%s",argv[3]); //per far passare i test togliere il path ./client1/
+	sprintf(namefile,"./client1/%s",argv[n_file]); //per far passare i test togliere il path ./client1/
 	f1 = open(namefile,O_CREAT|O_TRUNC|O_WRONLY,S_IRUSR|S_IWUSR);
+	n_file++;
 	printf("aperto file\n");
 	fflush(stdout);
 	char tmp = ' ';
@@ -92,8 +99,8 @@ int main(int argc, char* argv[])
 	{
 		FD_ZERO(&cset);
 		FD_SET(sock,&cset);
-		tval.tv_sec = 3; //assegno i secondi
-		tval.tv_usec = 500; //microsecondi
+		tval.tv_sec = 15; //assegno i secondi
+		tval.tv_usec = 0; //microsecondi
 		if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
 		{
 			memset(res,0,BUFF_LENGTH);
@@ -112,7 +119,6 @@ int main(int argc, char* argv[])
 			if(write(f1,res,len) != len)
 				return -1;
 			somma += len;
-			printf("somma :%d len:%d\n",somma,len);
 		}
 		else
 		{
@@ -127,5 +133,7 @@ int main(int argc, char* argv[])
 		printf("timestamp %u\n",timestamp);
 	close(f1);
 	close(sock);
+	}
+	
 	return 0; //28/04/2019
 }

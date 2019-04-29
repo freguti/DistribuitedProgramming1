@@ -102,7 +102,7 @@ int main(int argc, char **argv)
             while(tmp != '\n')
             {
                 if(read(connection,&tmp,1)!= 1) 
-                    return -1;
+                    return -1; //con i return -1 devo fare exit(0)?
                 recv_buffer[i++] = tmp;
             }
             sscanf(recv_buffer, "%s %s\r\n",msg,filename);
