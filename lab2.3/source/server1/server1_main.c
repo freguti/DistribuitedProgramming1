@@ -39,9 +39,10 @@ int main(int argc, char **argv)
     int file = 0;
     int uscita;
 
-    char *recv_buffer = malloc(RECVDIM);
-    char *send_buffer = malloc(SENDDIM);
-    char *filename = malloc(255);
+     char recv_buffer[RECVDIM];
+     char send_buffer[SENDDIM];
+     char filename[255];
+
     //const char error[7] = {'-','E','R','R','\r','\n'};
 
     struct stat statfile;
@@ -67,6 +68,10 @@ int main(int argc, char **argv)
     Listen(sock, QUEUE_SIZE);
     while(1)
     {
+
+        memset(recv_buffer,0,RECVDIM);
+        memset(send_buffer,0,SENDDIM);
+        memset(filename,0,255);
         uscita = 0;
         connection = accept(sock, (struct sockaddr*) &client, &clientaddr);
         printf("%d \n(%s) - new connection from client %s:%u\n", connection,prog_name, inet_ntoa(client.sin_addr),ntohs(client.sin_port));
@@ -75,7 +80,7 @@ int main(int argc, char **argv)
 
             char tmp = ' ';
             int i = 0;
-            while(tmp != '\n')
+            /*while(tmp != '\n' && i < RECVDIM)
             {
                 if(read(connection,&tmp,1)!= 1) 
                     {
@@ -83,15 +88,21 @@ int main(int argc, char **argv)
                         break;
                     }
                 recv_buffer[i++] = tmp;
-            }
-            if(uscita == 1)
+            }*/
+            
+            if((i = read(connection,recv_buffer,RECVDIM)) == -1)
+            {
+                close(connection);
                 continue;
+            }    
             sscanf(recv_buffer, "%s %s\r\n",msg,filename);
             printf("%s\n",recv_buffer);
-            if(strcmp(msg,"GET") != 0)
+            if(strcmp(msg,"GET") != 0 || recv_buffer[i-1]!='\n' || recv_buffer[i-2]!= '\r')
             {
-                printf("error\n");
+                printf("error %d\n", i);
                 Send(connection,MSG_ERROR,strlen(MSG_ERROR),0);  
+                close(connection);
+                continue;
             }
             else
             {   
@@ -101,6 +112,7 @@ int main(int argc, char **argv)
                 file = open(filename, O_RDONLY);
                 if (file == -1)
                 {
+                    close(connection);
                     printf("errore di apertura nel file!\n");
                 }
                 else
@@ -142,7 +154,10 @@ int main(int argc, char **argv)
                         }
 
                         if(uscita == 1)
+                        {
+                            close(connection);
                             continue;
+                        }
                         printf("byte inviati: %d\n",sent_char);
                         printf("timestamp %lu\n",statfile.st_mtime);
                         uint32_t timestamp = htonl(statfile.st_mtime);
@@ -153,11 +168,13 @@ int main(int argc, char **argv)
                     }
                     else
                     {
+                        close(connection);
                         printf("bisogna scegliere un file\n");
                     }
                     
                 }
             }
     }
+
     return 0; //28/04/2019
 }

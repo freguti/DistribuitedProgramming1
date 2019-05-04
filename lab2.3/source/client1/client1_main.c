@@ -27,6 +27,8 @@ int main(int argc, char* argv[])
     int i;
 
     char send_buf[BUFF_LENGTH];
+	char res[BUFF_LENGTH];
+	char namefile[100];
 
 	struct sockaddr_in saddr;
 
@@ -40,6 +42,7 @@ int main(int argc, char* argv[])
 	int n_file = 3;
 	while(n_file < argc)
 	{
+		printf("\n\n\naaaaaaa\n\n\n");
 		sock = Socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
 		saddr.sin_family = AF_INET;
 		saddr.sin_port = htons(atoi(argv[2])); //porta
@@ -58,14 +61,15 @@ int main(int argc, char* argv[])
 	fd_set cset;
 	
 
-	char *res = malloc(BUFF_LENGTH);
+	memset(res,0,BUFF_LENGTH);
 	struct timeval tval; //gestione del tempo
 	int t = 1; //numero di secondi di attesa7
 
 
 	int somma = 0;
 	int f1;
-	char *namefile = malloc(100);
+	
+	memset(namefile,0,100);
 	sprintf(namefile,"./client1/%s",argv[n_file]); //per far passare i test togliere il path ./client1/
 	f1 = open(namefile,O_CREAT|O_TRUNC|O_WRONLY,S_IRUSR|S_IWUSR);
 	n_file++;
@@ -84,6 +88,11 @@ int main(int argc, char* argv[])
 	res[len++] = '\0';
 	//CONTROLLO SU +OK\r\n
 	printf("stringa iniziale %s\n",res);
+	if(strcmp(res,"-ERR\r\n") == 0)
+		{
+			printf("errore di invio nella stringa iniziale\n");
+			return -1;
+		}
 	memset(res,0,BUFF_LENGTH);
 	tmp = ' ';
 	i = 0;
@@ -133,7 +142,9 @@ int main(int argc, char* argv[])
 		printf("timestamp %u\n",timestamp);
 	close(f1);
 	close(sock);
+
 	}
 	
+
 	return 0; //28/04/2019
 }

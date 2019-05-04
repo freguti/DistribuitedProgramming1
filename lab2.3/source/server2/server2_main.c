@@ -52,9 +52,9 @@ int main(int argc, char **argv)
     int file = 0;
     int child;
 
-    char *recv_buffer = malloc(RECVDIM);
-    char *send_buffer = malloc(SENDDIM);
-    char *filename = malloc(255);
+    char recv_buffer[RECVDIM];
+    char send_buffer[SENDDIM];
+    char filename[255];
     //const char error[7] = {'-','E','R','R','\r','\n'};
 
     struct stat statfile;
