@@ -55,6 +55,7 @@ int main(int argc, char **argv)
     char recv_buffer[RECVDIM];
     char send_buffer[SENDDIM];
     char filename[255];
+    char msg[6];
     //const char error[7] = {'-','E','R','R','\r','\n'};
 
     struct stat statfile;
@@ -96,17 +97,16 @@ int main(int argc, char **argv)
         {
             close(sock);
             printf("%d \n(%s) - new connection from client %s:%u\n", connection,prog_name, inet_ntoa(client.sin_addr),ntohs(client.sin_port));
-            char msg[5];
-            char tmp = ' ';
             int i = 0;
-            while(tmp != '\n')
+            memset(recv_buffer,0,RECVDIM);
+            memset(send_buffer,0,SENDDIM);
+            memset(filename,0,255);
+            if((i = read(connection,recv_buffer,RECVDIM)) == -1)
             {
-                if(read(connection,&tmp,1)!= 1) 
-                    return -1; //con i return -1 devo fare exit(0)?
-                recv_buffer[i++] = tmp;
-            }
+                close(connection);
+                return -1;
+            }  
             sscanf(recv_buffer, "%s %s\r\n",msg,filename);
-            printf("%s\n",recv_buffer);
             if(strcmp(msg,"GET") != 0)
             {
                 printf("error\n");
@@ -114,7 +114,6 @@ int main(int argc, char **argv)
             }
             else
             {   
-                //sleep(5);
                 printf("filename : %s\n",filename);
                 //cercare file con nome filename
                 file = open(filename, O_RDONLY);
@@ -160,7 +159,7 @@ int main(int argc, char **argv)
                         printf("timestamp %lu\n",statfile.st_mtime);
                         uint32_t timestamp = htonl(statfile.st_mtime);
 
-                        offset = write(connection,&timestamp,4);
+                        write(connection,&timestamp,4);
                         close(connection);
                         exit(0);
                     }

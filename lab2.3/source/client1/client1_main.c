@@ -42,7 +42,6 @@ int main(int argc, char* argv[])
 	int n_file = 3;
 	while(n_file < argc)
 	{
-		printf("\n\n\naaaaaaa\n\n\n");
 		sock = Socket(PF_INET,SOCK_STREAM,IPPROTO_TCP);
 		saddr.sin_family = AF_INET;
 		saddr.sin_port = htons(atoi(argv[2])); //porta
@@ -70,7 +69,7 @@ int main(int argc, char* argv[])
 	int f1;
 	
 	memset(namefile,0,100);
-	sprintf(namefile,"./client1/%s",argv[n_file]); //per far passare i test togliere il path ./client1/
+	sprintf(namefile,"%s",argv[n_file]); //per far passare i test togliere il path ./client1/
 	f1 = open(namefile,O_CREAT|O_TRUNC|O_WRONLY,S_IRUSR|S_IWUSR);
 	n_file++;
 	printf("aperto file\n");
