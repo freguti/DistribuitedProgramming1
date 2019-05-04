@@ -40,3 +40,6 @@ lab2.3/tools/100MB.txt
 lab2.3/source/bcompare-4.2.9.23626_amd64.deb
 lab2.3/source/server
 lab2.3/source/client
+lab2.3/source/client
+.vscode/ipch/d22dae868fb4e844/mmap_address.bin
+lab2.3/source/server

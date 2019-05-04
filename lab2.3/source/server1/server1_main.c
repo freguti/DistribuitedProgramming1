@@ -32,6 +32,9 @@ char* prog_name;
 
 int main(int argc, char **argv)
 {
+    fd_set cset;
+    struct timeval tval; //gestione del tempo
+
     int porta;
     int sock;
     int connection;
@@ -89,9 +92,21 @@ int main(int argc, char **argv)
                     }
                 recv_buffer[i++] = tmp;
             }*/
-            
-            if((i = read(connection,recv_buffer,RECVDIM)) == -1)
+            FD_ZERO(&cset);
+		    FD_SET(connection,&cset);
+		    tval.tv_sec = 15; //assegno i secondi
+		    tval.tv_usec = 0; //microsecondi
+		    if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
+		    {
+                if((i = read(connection,recv_buffer,RECVDIM)) == -1)
+                {
+                    close(connection);
+                    continue;
+                }
+            }
+            else
             {
+                printf("TIMEOUT\n");
                 close(connection);
                 continue;
             }    
@@ -161,8 +176,9 @@ int main(int argc, char **argv)
                         printf("byte inviati: %d\n",sent_char);
                         printf("timestamp %lu\n",statfile.st_mtime);
                         uint32_t timestamp = htonl(statfile.st_mtime);
-                        
+                        offset = 0;
                         offset = write(connection,&timestamp,4);
+                        printf("byte inviati timestamp %d\n",offset);
                         close(connection);
                         
                     }

@@ -55,16 +55,13 @@ int main(int argc, char* argv[])
 	strcat(send_buf,argv[n_file]);
 	strcat(send_buf,"\r\n");
 	printf("%s %ld\n",send_buf,strlen(send_buf));
-	int s = send(sock,send_buf,strlen(send_buf),0);
+	//int s = send(sock,send_buf,strlen(send_buf),0);
 	printf("caratteri inviati:%s\n",send_buf);
 	fd_set cset;
 	
 
 	memset(res,0,BUFF_LENGTH);
 	struct timeval tval; //gestione del tempo
-	int t = 1; //numero di secondi di attesa7
-
-
 	int somma = 0;
 	int f1;
 	
@@ -79,10 +76,22 @@ int main(int argc, char* argv[])
 	int len = 0;
 	while(tmp != '\n')
 	{
+		FD_ZERO(&cset);
+		FD_SET(sock,&cset);
+		tval.tv_sec = 15; //assegno i secondi
+		tval.tv_usec = 0; //microsecondi
+		if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
+		{
 			fflush(stdout);
 			i = read(sock,(void *)&tmp,1);
 			if(i != -1)
-				res[len++] = tmp;
+			res[len++] = tmp;
+		}
+		else
+		{
+			printf("TIMEOUT\n");
+			return -1;
+		}
 	}
 	res[len++] = '\0';
 	//CONTROLLO SU +OK\r\n
@@ -97,9 +106,20 @@ int main(int argc, char* argv[])
 	i = 0;
 	len = 0;
 	uint32_t dimensione;
-		recv(sock,&dimensione,4,0);
-		printf("dim %u\n",dimensione);
-	
+		FD_ZERO(&cset);
+		FD_SET(sock,&cset);
+		tval.tv_sec = 15; //assegno i secondi
+		tval.tv_usec = 0; //microsecondi
+		if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
+		{
+			recv(sock,&dimensione,4,0);
+			printf("dim %u\n",dimensione);
+		}
+		else
+		{
+			printf("TIMEOUT\n");
+			return -1;
+		}	
 		dimensione = ntohl(dimensione);
 		printf("dimensione conv. %u\n",dimensione);
 	len = 0;
@@ -135,10 +155,23 @@ int main(int argc, char* argv[])
 		}
 	}
 	printf("%d\n",somma);
-	uint32_t timestamp;
-		recv(sock,&timestamp,4,0);
-		timestamp = ntohl(timestamp);
-		printf("timestamp %u\n",timestamp);
+	uint32_t timestamp = 0;
+	FD_ZERO(&cset);
+	FD_SET(sock,&cset);
+	tval.tv_sec = 15; //assegno i secondi
+	tval.tv_usec = 0; //microsecondi
+		if(select(FD_SETSIZE,&cset,NULL,NULL,&tval) != 0) //attendo una ricezione
+		{
+			recv(sock,&timestamp,4,0);
+			timestamp = ntohl(timestamp);
+			printf("timestamp %u\n",timestamp);
+		}
+		else
+		{
+			printf("TIMEOUT\n");
+			return -1;
+		}	
+
 	close(f1);
 	close(sock);
 

@@ -45,6 +45,9 @@ char* prog_name;
 
 int main(int argc, char **argv)
 {
+    fd_set cset;
+    struct timeval tval; //gestione del tempo
+
     int porta;
     int sock;
     int connection;
@@ -101,9 +104,21 @@ int main(int argc, char **argv)
             memset(recv_buffer,0,RECVDIM);
             memset(send_buffer,0,SENDDIM);
             memset(filename,0,255);
-            if((i = read(connection,recv_buffer,RECVDIM)) == -1)
+            FD_ZERO(&cset);
+		    FD_SET(connection,&cset);
+		    tval.tv_sec = 15; //assegno i secondi
+		    tval.tv_usec = 0; //microsecondi
+		    if(select(FD_SETSIZE,&cset,NULL,NULL,&tval)) //attendo una ricezione
+		    {
+                if((i = read(connection,recv_buffer,RECVDIM)) == -1)
+                {
+                    close(connection);
+                    return -1;
+                }
+            }
+            else
             {
-                close(connection);
+                printf("TIMEOUT\n");
                 return -1;
             }  
             sscanf(recv_buffer, "%s %s\r\n",msg,filename);
