@@ -100,14 +100,14 @@ int main(int argc, char **argv)
 		    {
                 if((i = read(connection,recv_buffer,RECVDIM)) == -1)
                 {
-                    close(connection);
+                    //close(connection);
                     continue;
                 }
             }
             else
             {
                 printf("TIMEOUT\n");
-                close(connection);
+                //close(connection);
                 continue;
             }    
             sscanf(recv_buffer, "%s %s\r\n",msg,filename);
@@ -127,7 +127,9 @@ int main(int argc, char **argv)
                 file = open(filename, O_RDONLY);
                 if (file == -1)
                 {
-                    close(connection);
+                    
+                    Send(connection,MSG_ERROR,strlen(MSG_ERROR),0); 
+                    close(connection); 
                     printf("errore di apertura nel file!\n");
                 }
                 else
@@ -170,7 +172,7 @@ int main(int argc, char **argv)
 
                         if(uscita == 1)
                         {
-                            close(connection);
+                            //close(connection);
                             continue;
                         }
                         printf("byte inviati: %d\n",sent_char);
@@ -184,6 +186,7 @@ int main(int argc, char **argv)
                     }
                     else
                     {
+                        Send(connection,MSG_ERROR,strlen(MSG_ERROR),0);
                         close(connection);
                         printf("bisogna scegliere un file\n");
                     }

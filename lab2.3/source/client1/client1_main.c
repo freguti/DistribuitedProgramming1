@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
 	strcat(send_buf,argv[n_file]);
 	strcat(send_buf,"\r\n");
 	printf("%s %ld\n",send_buf,strlen(send_buf));
-	//int s = send(sock,send_buf,strlen(send_buf),0);
+	int s = send(sock,send_buf,strlen(send_buf),0);
 	printf("caratteri inviati:%s\n",send_buf);
 	fd_set cset;
 	

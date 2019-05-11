@@ -91,6 +91,7 @@ int main(int argc, char **argv)
         if(child < 0)
         {
             printf("errore nella fork\n");
+            return -1;
         }
         else if(child > 0) //padre
         {
@@ -126,6 +127,7 @@ int main(int argc, char **argv)
             {
                 printf("error\n");
                 Send(connection,MSG_ERROR,strlen(MSG_ERROR),0);  
+                return -1;
             }
             else
             {   
@@ -135,6 +137,8 @@ int main(int argc, char **argv)
                 if (file == -1)
                 {
                     printf("errore di apertura nel file!\n");
+                    Send(connection,MSG_ERROR,strlen(MSG_ERROR),0);
+                    return -1;
                 }
                 else
                 {
@@ -181,6 +185,8 @@ int main(int argc, char **argv)
                     else
                     {
                         printf("bisogna scegliere un file\n");
+                        Send(connection,MSG_ERROR,strlen(MSG_ERROR),0);
+                        return -1;
                     }
 
                 }
